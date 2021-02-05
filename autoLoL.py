@@ -2,8 +2,6 @@ import pyautogui
 import win32gui
 import win32ui
 import keyboard
-import cv2 as cv
-import numpy as np
 from time import sleep
 from ctypes import windll
 from PIL import Image
@@ -53,48 +51,6 @@ class AutoLoL:
             saveDC.DeleteDC()
             mfcDC.DeleteDC()
             win32gui.ReleaseDC(self.hwnd, hwndDC)
-
-    def FindAndClick(self, path):
-        foundImage = False
-        while not foundImage:
-            print(f"Searching for {path} on screen")
-            PILimage = self.screenshot.convert('RGB')
-            haystack_img = np.array(PILimage)
-            haystack_img = haystack_img[:, :, ::-1].copy()
-            needle_img = cv.imread(path, cv.IMREAD_UNCHANGED)
-            _, width, height = needle_img.shape[::-1]
-            needle_img = needle_img[..., :3]
-            result = cv.matchTemplate(
-                haystack_img, needle_img, cv.TM_CCOEFF_NORMED)
-            _, max_val, _, max_loc = cv.minMaxLoc(result)
-            if max_val > 0.75:
-                print(f"FindAndClick: found {path}, confidence {max_val}")
-                win32gui.SetForegroundWindow(self.hwnd)
-                self.ClickInClient(
-                    (max_loc[0] + width / 2, max_loc[1] + height / 2))
-                foundImage = True
-            # If cannot find Accept, goes back and checks if in champ select
-            elif self.declined and not foundImage:
-                break
-
-    def FindImage(self, path):
-        foundImage = False
-        while not foundImage:
-            print(f"Searching for {path} on screen")
-            PILimage = self.screenshot.convert('RGB')
-            haystack_img = np.array(PILimage)
-            haystack_img = haystack_img[:, :, ::-1].copy()
-            needle_img = cv.imread(path, cv.IMREAD_UNCHANGED)
-            needle_img = needle_img[..., :3]
-            result = cv.matchTemplate(
-                haystack_img, needle_img, cv.TM_CCOEFF_NORMED)
-            _, max_val, _, _ = cv.minMaxLoc(result)
-            if max_val > 0.75:
-                foundImage = True
-                # print(f"FindImage: found {path}, confidence {max_val}")
-                return True
-            else:
-                return False
 
     def ClickInClient(self, clickpos, time=0):
         sleep(time)
