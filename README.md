@@ -2,4 +2,5 @@
 ```
 pip install pyautogui keyboard PILLOW opencv-python pywin32 numpy
 ```
-Edit path in .bat file
+Edit path in .bat file  
+Edit coordinates in main() function
