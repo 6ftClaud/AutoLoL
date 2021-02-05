@@ -91,7 +91,7 @@ class AutoLoL:
             _, max_val, _, _ = cv.minMaxLoc(result)
             if max_val > 0.75:
                 foundImage = True
-                print(f"FindImage: found {path}, confidence {max_val}")
+                # print(f"FindImage: found {path}, confidence {max_val}")
                 return True
             else:
                 return False
@@ -111,6 +111,12 @@ class AutoLoL:
                     return True
         return False
 
+    def CheckPixel(self, pos):
+        rgb_image = self.screenshot.convert('RGB')
+        r, g, b = rgb_image.getpixel(pos)
+        rgb = (r, g, b)
+        return rgb
+
 
 def main():
     autolol = AutoLoL()
@@ -120,38 +126,46 @@ def main():
     print("")
 
     # x, y positions of places in 1600x900 client
+    acceptButtonBorder = (800, 669)
+    acceptButton = (800, 700)
+    inQueue = (1425, 70)
+    runeButton = (545, 855)
     chatBox = (55, 855)
     championSearch = (960, 130)
     selectChampion = (485, 210)
     lockIn = (805, 765)
-    waitingForChatbox = True
+    waitingForLobby = True
 
     Thread(target=autolol.Screenshot).start()
     sleep(0.25)
 
     # Wait for Accept to appear
-    autolol.FindAndClick('accept.png')
+    while autolol.CheckPixel(acceptButtonBorder) != (10, 195, 182):
+        print("Waiting for matchmaking to find a game")
+    autolol.ClickInClient(acceptButton)
 
     # Wait for Chatbox to appear
-    while waitingForChatbox:
-        pixelcolor = autolol.screenshot.getpixel(chatBox)
-        inqueue = autolol.FindImage('inqueue.png')
-        inqueue2 = autolol.FindImage('inqueue2.png')
-        if pixelcolor == (1, 10, 19) and not inqueue:
-            print("No longer in queue. Waiting for chat to load.")
-            while True:
-                loaded = autolol.ChatLoaded()
-                if loaded:
-                    break
+    while waitingForLobby:
+        chatBoxRGB = autolol.CheckPixel(chatBox)
+        inQueueRGB = autolol.CheckPixel(inQueue)
+        runeButtonRGB = autolol.CheckPixel(runeButton)
+        if chatBoxRGB == (1, 10, 19) and runeButtonRGB == (205, 190, 145):
+            print("No longer in queue.")
+            while not autolol.ChatLoaded():
+                print("Waiting for chat to load.")
             for _ in range(0, 5):
                 autolol.ClickInClient(chatBox)
                 keyboard.write(role)
                 keyboard.press_and_release('Enter')
-            waitingForChatbox = False
-        # If someone declines queue, check again
-        elif inqueue and inqueue2:
-            autolol.declined = True
-            autolol.FindAndClick('accept.png')
+            waitingForLobby = False
+        # If someone cancels queue
+        elif inQueueRGB == (0, 31, 45) or inQueueRGB == (9, 166, 70):
+            if autolol.CheckPixel(acceptButtonBorder) != (10, 195, 182):
+                print("Waiting for matchmaking to find a game")
+            else:
+                autolol.ClickInClient(acceptButton)
+        else:
+            pass
 
     # Target champ search and write
     print(f"Searching for {champion}")
