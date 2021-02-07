@@ -3,4 +3,4 @@
 pip install pyautogui keyboard PILLOW opencv-python pywin32 numpy
 ```
 Edit path in .bat file  
-Edit coordinates in main() function
+Edit coordinates in main() function. Current coordinates in the script are for a 1600x900 client.  
