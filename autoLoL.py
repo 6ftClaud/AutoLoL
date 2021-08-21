@@ -7,9 +7,9 @@ from ctypes import windll
 from PIL import Image
 from threading import Thread
 
+
 class AutoLoL:
 
-    declined = False
     hwnd = None
     screenshot = None
     screenshot_stopped = False
@@ -21,8 +21,10 @@ class AutoLoL:
 
     def __init__(self):
         self.hwnd = win32gui.FindWindow(None, "League of Legends")
+        if self.hwnd == 0:
+            raise Exception("You must run League of Legends first.")
 
-    # Constantly update LoL client position in case it moves
+    # Gets client position and size
     def WindowInfo(self):
         rect = win32gui.GetWindowRect(self.hwnd)
         self.x = rect[0]
@@ -30,7 +32,7 @@ class AutoLoL:
         self.w = rect[2] - self.x
         self.h = rect[3] - self.y
 
-    def Screenshot(self, ):
+    def Screenshot(self):
         # Create Screenshot thread to constantly update LoL screenshot
         while not self.screenshot_stopped:
             self.WindowInfo()
@@ -52,12 +54,13 @@ class AutoLoL:
             mfcDC.DeleteDC()
             win32gui.ReleaseDC(self.hwnd, hwndDC)
 
+    # Adds client offset to given coordinates
     def ClickInClient(self, clickpos, time=0):
         sleep(time)
         pyautogui.click(clickpos[0] + self.x, clickpos[1] + self.y)
 
+    # Checks for gray letters in chatbox to determine if chat has loaded
     def ChatLoaded(self):
-        # 35x740 to 285x800 in 1600x900 client
         rgb_image = self.screenshot.convert('RGB')
         for x in range(35, 65, 2):
             for y in range(740, 800, 2):
@@ -67,6 +70,7 @@ class AutoLoL:
                     return True
         return False
 
+    # Returns pixel RGB values of given coordinates (tuple of x, y)
     def CheckPixel(self, pos):
         rgb_image = self.screenshot.convert('RGB')
         r, g, b = rgb_image.getpixel(pos)
@@ -92,12 +96,14 @@ def main():
     lockIn = (805, 765)
     waitingForLobby = True
 
+    # Run screenshotting on a separate thread
     Thread(target=autolol.Screenshot).start()
-    sleep(0.25)
+    sleep(0.5)
 
     # Wait for Accept to appear
     while autolol.CheckPixel(acceptButtonBorder) != (10, 195, 182):
         print("Waiting for matchmaking to find a game")
+    win32gui.SetForegroundWindow(autolol.hwnd)
     autolol.ClickInClient(acceptButton)
 
     # Wait for Chatbox to appear
@@ -109,10 +115,13 @@ def main():
             print("No longer in queue.")
             while not autolol.ChatLoaded():
                 print("Waiting for chat to load.")
-            for _ in range(0, 5):
-                autolol.ClickInClient(chatBox)
-                keyboard.write(role)
-                keyboard.press_and_release('Enter')
+            if role == "":
+                pass
+            else:
+                for _ in range(0, 5):
+                    autolol.ClickInClient(chatBox)
+                    keyboard.write(role)
+                    keyboard.press_and_release('Enter')
             waitingForLobby = False
         # If someone cancels queue
         elif inQueueRGB == (0, 31, 45) or inQueueRGB == (9, 166, 70):
